@@ -17,13 +17,13 @@ var todos []models.Todo
 func HandleGetAllTodos(w http.ResponseWriter, r *http.Request) {
 	todos = []models.Todo{
 		{
-			ID:   1,
+			Id:   1,
 			Name: "Learn Golang",
 			Desc: "ResponseWriter",
 			Time: time.Now(),
 		},
 		{
-			ID:   2,
+			Id:   2,
 			Name: "Test the golang api",
 			Desc: "Second task",
 			Time: time.Now().Add(1 * time.Hour),
@@ -46,7 +46,7 @@ func HandleGetTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, todo := range todos {
-		if todo.ID == id {
+		if todo.Id == id {
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(todo)
 			fmt.Println(todo)
@@ -72,7 +72,7 @@ func HandleCreateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	todo.ID = len(todos) + 1
+	todo.Id = len(todos) + 1
 	todo.Time = time.Now()
 	todos = append(todos, todo)
 
@@ -110,7 +110,7 @@ func HandleUpdateTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i := range todos {
-		if todos[i].ID == id {
+		if todos[i].Id == id {
 			todos[i].Name = updatedTodo.Name
 			todos[i].Desc = updatedTodo.Desc
 
@@ -140,7 +140,7 @@ func HandleDeleteTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i, todo := range todos {
-		if todo.ID == id {
+		if todo.Id == id {
 			todos = append(todos[:i], todos[i+1:]...)
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]any{
