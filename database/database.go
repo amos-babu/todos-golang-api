@@ -3,31 +3,31 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"net/url"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var DB *sql.DB
-
 func ConnectToDB(dbUsername, dbPassword, dbName string) (*sql.DB, error) {
 	var err error
-	dsn := fmt.Sprintf("%s:%s@tcp(127.0.0.1:3306)/%s", dbUsername, dbPassword, dbName)
-	DB, err = sql.Open("mysql", dsn)
+	dsn := fmt.Sprintf("%s:%s@tcp(127.0.0.1:3306)/%s?parseTime=true", dbUsername, dbName, url.QueryEscape(dbPassword))
+
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	// defer db.Close()
-
-	if err := DB.Ping(); err != nil {
+	if err := db.Ping(); err != nil {
 		return nil, err
 	}
 
-	createTableMigrations(DB)
-	return DB, nil
+	if err := createTableMigrations(db); err != nil {
+		return nil, err
+	}
+	return db, nil
 }
 
-func createTableMigrations(db *sql.DB) {
+func createTableMigrations(db *sql.DB) error {
 	query := `CREATE TABLE IF NOT EXISTS todos (
             id INT AUTO_INCREMENT PRIMARY KEY,
             name VARCHAR(255) NOT NULL UNIQUE,
@@ -37,8 +37,10 @@ func createTableMigrations(db *sql.DB) {
 
 	_, err := db.Exec(query)
 	if err != nil {
-		fmt.Println("Error creating table: ", err)
+		fmt.Errorf("Error Creating Tables: %w", err)
 	}
 
-	fmt.Println("Table created succefully!")
+	fmt.Println("✅ Table created succefully!")
+
+	return nil
 }

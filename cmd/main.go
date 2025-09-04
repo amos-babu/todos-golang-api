@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -21,12 +22,16 @@ func main() {
 	dbName := os.Getenv("DATABASE_NAME")
 	dbPassword := os.Getenv("DATABASE_PASSWORD")
 
+	// fmt.Println(dbUsername, dbName, dbPassword)
+
 	db, err := database.ConnectToDB(dbUsername, dbName, dbPassword)
 	if err != nil {
 		log.Fatal("Error Connecting to the database: ", err)
 	}
 
 	defer db.Close()
+
+	fmt.Println("✅ Connected to the database successfully")
 
 	r := mux.NewRouter()
 
