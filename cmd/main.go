@@ -39,11 +39,18 @@ func main() {
 	todoRepo := &repository.TodoRepository{DB: db}
 	todoHandler := &handlers.TodoHandler{Repo: todoRepo}
 
-	r.HandleFunc("/", todoHandler.HandleGetAllTodos)
-	r.HandleFunc("/todo/{id}", todoHandler.HandleGetTodo)
-	r.HandleFunc("/todo/{id}", todoHandler.HandleUpdateTodo).Methods("PUT")
-	r.HandleFunc("/todo", todoHandler.HandleCreateTodo).Methods("POST")
-	r.HandleFunc("/todo/{id}", todoHandler.HandleDeleteTodo).Methods("DELETE")
+	//Route Health Check
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"status": "ok"}`))
+	}).Methods("GET")
+
+	//Todo Routes
+	r.HandleFunc("/todos", todoHandler.HandleGetAllTodos).Methods("GET")
+	r.HandleFunc("/todos/{id}", todoHandler.HandleGetTodo).Methods("GET")
+	r.HandleFunc("/todos/{id}", todoHandler.HandleUpdateTodo).Methods("PUT")
+	r.HandleFunc("/todos", todoHandler.HandleCreateTodo).Methods("POST")
+	r.HandleFunc("/todos/{id}", todoHandler.HandleDeleteTodo).Methods("DELETE")
 
 	server := &http.Server{
 		Handler: r,
@@ -53,5 +60,6 @@ func main() {
 		ReadTimeout:  15 * time.Second,
 	}
 
+	log.Println("🚀 Server running at http://localhost:8080")
 	log.Fatal(server.ListenAndServe())
 }

@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 
@@ -16,12 +14,11 @@ type TodoHandler struct {
 	Repo *repository.TodoRepository
 }
 
-var todos []models.Todo
-
 func (h *TodoHandler) HandleGetAllTodos(w http.ResponseWriter, r *http.Request) {
 	todos, err := h.Repo.GetAll()
 	if err != nil {
 		http.Error(w, "Failed to fetch todos: ", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -34,10 +31,12 @@ func (h *TodoHandler) HandleCreateTodo(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&todo); err != nil {
 		http.Error(w, "Failed to decode todos", http.StatusInternalServerError)
+		return
 	}
 
 	if err := h.Repo.CreateTodo(&todo); err != nil {
 		http.Error(w, "Error creating todos", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -49,37 +48,33 @@ func (h *TodoHandler) HandleCreateTodo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TodoHandler) HandleGetTodo(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 	id, err := strconv.Atoi(idStr)
-	fmt.Println(id)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid ID"})
 		return
 	}
 
-	w.WriteHeader(http.StatusNotFound)
-	json.NewEncoder(w).Encode(map[string]string{"error": "Todo With ID Not Found"})
+	todo, err := h.Repo.GetTodoById(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(todo)
 }
 
 func (h *TodoHandler) HandleUpdateTodo(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	reqBody, err := io.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Server Error"})
-		return
-	}
-
 	var updatedTodo models.Todo
-	if err := json.Unmarshal(reqBody, &updatedTodo); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid Data"})
+	if err := json.NewDecoder(r.Body).Decode(&updatedTodo); err != nil {
+		http.Error(w, "Failed to decode body", http.StatusInternalServerError)
 		return
 	}
+
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 
@@ -89,27 +84,22 @@ func (h *TodoHandler) HandleUpdateTodo(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid ID"})
 		return
 	}
+	// if err != nil {
+	//     http.Error(w, "Invalid ID", http.StatusBadRequest)
+	//     return
+	// }
 
-	for i := range todos {
-		if todos[i].Id == id {
-			todos[i].Name = updatedTodo.Name
-			todos[i].Description = updatedTodo.Description
-
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]any{
-				"success": "Created successfully",
-				"todo":    todos,
-			})
-			return
-		}
+	if err := h.Repo.UpdateTodo(&updatedTodo, id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	w.WriteHeader(http.StatusNotFound)
-	json.NewEncoder(w).Encode(map[string]string{"error": "Todo With ID Not Found"})
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"success": "Todo Updated successfully"})
 }
 
 func (h *TodoHandler) HandleDeleteTodo(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 
@@ -120,17 +110,12 @@ func (h *TodoHandler) HandleDeleteTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for i, todo := range todos {
-		if todo.Id == id {
-			todos = append(todos[:i], todos[i+1:]...)
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]any{
-				"success": "Created successfully",
-				"todo":    todos,
-			})
-			return
-		}
+	if err := h.Repo.DeleteTodo(id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	w.WriteHeader(http.StatusNotFound)
-	json.NewEncoder(w).Encode(map[string]string{"error": "Todo With ID Not Found"})
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"success": "Todo Deleted Successfully"})
 }

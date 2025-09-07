@@ -34,8 +34,6 @@ func (r *TodoRepository) GetAll() ([]models.Todo, error) {
 		return nil, err
 	}
 
-	fmt.Println(todos)
-
 	return todos, nil
 }
 
@@ -57,13 +55,54 @@ func (r *TodoRepository) CreateTodo(t *models.Todo) error {
 }
 
 func (r *TodoRepository) GetTodoById(id int) (models.Todo, error) {
-	return models.Todo{}, nil
+	var t models.Todo
+	query := `SELECT id, name, description, createdAt FROM todos WHERE id = ?;`
+	err := r.DB.QueryRow(query, id).Scan(&t.Id, &t.Name, &t.Description, &t.CreatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return t, fmt.Errorf("No todo found with that id")
+		} else {
+			return t, err
+		}
+	}
+
+	return t, nil
 }
 
-func (r *TodoRepository) UpdateTodo(id int) (models.Todo, error) {
-	return models.Todo{}, nil
+func (r *TodoRepository) UpdateTodo(t *models.Todo, id int) error {
+	query := `UPDATE todos SET name = ?, description = ? WHERE id = ?;`
+	result, err := r.DB.Exec(query, t.Name, t.Description, id)
+	if err != nil {
+		return err
+	}
+
+	rowCount, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowCount == 0 {
+		return fmt.Errorf("No todo updated with that id")
+	}
+
+	return nil
 }
 
 func (r *TodoRepository) DeleteTodo(id int) error {
+	query := `DELETE FROM todos WHERE id = ?;`
+	result, err := r.DB.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no todo found with id %d", id)
+	}
+
 	return nil
 }
