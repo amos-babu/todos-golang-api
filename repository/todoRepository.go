@@ -12,7 +12,7 @@ type TodoRepository struct {
 }
 
 func (r *TodoRepository) GetAll() ([]models.Todo, error) {
-	query := `SELECT * FROM todos;`
+	query := `SELECT id, name, description, createdAt FROM todos;`
 	rows, err := r.DB.Query(query)
 	if err != nil {
 		return nil, err
@@ -39,8 +39,21 @@ func (r *TodoRepository) GetAll() ([]models.Todo, error) {
 	return todos, nil
 }
 
-func (r *TodoRepository) CreateTodo() (models.Todo, error) {
-	return models.Todo{}, nil
+func (r *TodoRepository) CreateTodo(t *models.Todo) error {
+	query := `INSERT INTO todos (name, description) VALUES (?, ?);`
+	result, err := r.DB.Exec(query, t.Name, t.Description)
+	if err != nil {
+		return err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	t.Id = int(id)
+
+	return nil
 }
 
 func (r *TodoRepository) GetTodoById(id int) (models.Todo, error) {
